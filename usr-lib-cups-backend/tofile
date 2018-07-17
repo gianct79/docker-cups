@@ -1,0 +1,24 @@
+#! /bin/bash
+# Have debug info in /var/log/cups/error_log:
+set -x
+# Output "device discovery" information on stdout:
+if test "$#" = "0"
+then echo 'direct tofile:/tmp/tofile.out "Unknown" "/tmp/tofile.out"'
+  exit 0
+fi
+fileid="tofile.out" #`uuid -v 1`
+# Have the input at fd0 (stdin) in any case:
+test -n "$6" && exec <"$6"
+# Infinite retries to access the file:
+until cat /dev/null >/tmp/${fileid}
+do echo "INFO: cannot access /tmp/${fileid} - retry in 30 seconds" 1>&2
+  sleep 30
+done
+echo "INFO: sending data to /tmp/${fileid}" 1>&2
+# Forward the data from stdin to the file:
+if cat - >/tmp/${fileid}
+then echo "INFO:" 1>&2
+  exit 0
+else echo "ERROR: failed to send data to /tmp/${fileid}" 1>&2
+  exit 1
+fi
